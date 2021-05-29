@@ -194,7 +194,7 @@ class NLRB(scrapelib.Scraper):
         details['participants'] = participants
 
         # Related Cases
-        details['related cases'] = page.xpath("//table[starts-with(@class, 'related-case')]/tbody//a/text()")
+        details['related cases'] = [{'related_case_number': case_number} for case_number in page.xpath("//table[starts-with(@class, 'related-case')]/tbody//a/text()")]
 
         return {k.lower().replace(' ', '_'): v for k, v in details.items()}
 
