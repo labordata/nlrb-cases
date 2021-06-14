@@ -3,6 +3,7 @@ import time
 import urllib.parse
 import functools
 import datetime
+import sys
 
 import scrapelib
 import lxml.html
@@ -104,7 +105,7 @@ class NLRB(scrapelib.Scraper):
         elif '-WH-' in case_number:
             case_type = 'WH'
         else:
-            print(case_number)
+            print(case_number, file=sys.stderr)
             raise
 
         return case_type
