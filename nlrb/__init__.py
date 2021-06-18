@@ -100,6 +100,8 @@ class NLRB(scrapelib.Scraper):
             case_type = 'CB'
         elif '-CE-' in case_number:
             case_type = 'CE'
+        elif '-CP-' in case_number:
+            case_type = 'CP'
         elif '-AC-' in case_number:
             case_type = 'AC'
         elif '-WH-' in case_number:
