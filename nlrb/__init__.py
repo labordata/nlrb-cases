@@ -212,7 +212,7 @@ class NLRB(scrapelib.Scraper):
         if last_page_links:
 
             last_page_link, = last_page_links
-            last_page = urllib.parse.parse_qs(urllib.parse.urlparse(last_page_link.get('href')).query)['page'][0]
+            last_page = urllib.parse.parse_qs(urllib.parse.urlparse(last_page_link.get('href')).query)['page'][0].split(',')[0]
 
             for page_number in range(1, int(last_page) + 1):
 
