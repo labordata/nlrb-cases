@@ -8,6 +8,7 @@ import sys
 import scrapelib
 import lxml.html
 import requests
+import tqdm
 
 
 CaseTypes = typing.Sequence[typing.Literal['C', 'R']]
@@ -30,7 +31,7 @@ class NLRB(scrapelib.Scraper):
                                              date_start,
                                              date_end)
 
-        response = requests.get(search_url, params=params)
+        response = self.get(search_url, params=params)
 
         page = lxml.html.fromstring(response.text)
         page.make_links_absolute(search_url)
@@ -45,10 +46,17 @@ class NLRB(scrapelib.Scraper):
                              data=payload)
 
         result = response.json()['data']
-        while not result['finished']:
-            time.sleep(1)
-            response = requests.get(self.base_url + '/nlrb-downloads/progress/' + str(result['id']))
-            result = response.json()['data']
+
+        previous = 0
+        with tqdm.tqdm(total=result['total'], desc='NLRB.gov preparing download') as pbar:
+            while not result['finished']:
+                response = self.get(self.base_url + '/nlrb-downloads/progress/' + str(result['id']))
+                result = response.json()['data']
+
+                # update progress bar
+                current = result['processed']
+                pbar.update(current - previous)
+                previous = current
 
         return self.base_url + result['filename']
 
