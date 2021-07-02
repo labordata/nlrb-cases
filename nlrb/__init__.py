@@ -216,7 +216,8 @@ class NLRB(scrapelib.Scraper):
         docket_table, = page.xpath("//div[@id='case_docket_activity_data']/table/tbody")
         docket = list(self._parse_docket_table(docket_table))
 
-        last_page_links = page.xpath("//a[@title='Go to last page']")
+        last_page_links = page.xpath("//div[@class='case_documents_pagination']//a[@title='Go to last page']")
+
         if last_page_links:
 
             last_page_link, = last_page_links
@@ -264,4 +265,4 @@ class NLRB(scrapelib.Scraper):
 
 if __name__ == '__main__':
     s = NLRB()
-    print(s.case_details('12-RC-008549'))
+    print(s.case_details('10-RC-269250'))
