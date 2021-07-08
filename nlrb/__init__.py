@@ -140,7 +140,13 @@ class NLRB(scrapelib.Scraper):
 
         # Case Name
         details = {}
-        name, = page.xpath("//h1[@class='uswds-page-title page-title']/text()")
+
+        try:
+            name, = page.xpath("//h1[@class='uswds-page-title page-title']/text()")
+        except ValueError:
+            response.status_code = 404
+            raise scrapelib.HTTPError(response)
+
         details['name'] = name.strip()
 
         # Basic Details
