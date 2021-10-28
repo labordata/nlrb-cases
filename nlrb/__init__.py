@@ -179,7 +179,7 @@ class NLRB(scrapelib.Scraper):
         details['name'] = name.strip()
 
         # Basic Details
-        basic_section, = page.xpath("//div[@class='partition-div']")
+        basic_section, = page.xpath("//div[@id='block-mainpagecontent']/div[@class='partition-div']")
         left_column = basic_section.xpath(".//div[@class='left-div']/b")
         right_column = basic_section.xpath(".//div[@class='right-div case-right-div']/b")
         columns = left_column + right_column
