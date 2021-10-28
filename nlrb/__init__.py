@@ -4,11 +4,17 @@ import urllib.parse
 import functools
 import datetime
 import sys
+import os
 
 import scrapelib
 import lxml.html
 import requests
+from requests.models import PreparedRequest
 import tqdm
+import selenium.webdriver
+import selenium.webdriver.support.expected_conditions
+import selenium.webdriver.common.by
+import selenium.webdriver.support.ui
 
 
 CaseTypes = typing.Sequence[typing.Literal['C', 'R']]
@@ -31,16 +37,7 @@ class NLRB(scrapelib.Scraper):
                                              date_start,
                                              date_end)
 
-        response = self.get(search_url, params=params)
-
-        page = lxml.html.fromstring(response.text)
-        page.make_links_absolute(search_url)
-
-        download_link, = page.xpath("//a[@id='download-button']")
-
-        payload = {'cacheId': download_link.get('data-cacheid'),
-                   'typeOfReport': download_link.get('data-typeofreport'),
-                   'token': str(datetime.datetime.now())}
+        payload = self._click_download_button(search_url, params)
 
         response = self.post(self.base_url + '/nlrb-downloads/start-download',
                              data=payload)
@@ -59,6 +56,27 @@ class NLRB(scrapelib.Scraper):
                 previous = current
 
         return self.base_url + result['filename']
+
+    def _click_download_button(self, search_url, params):
+
+        prepared = PreparedRequest()
+        prepared.prepare_url(search_url, params)
+
+        driver = selenium.webdriver.Chrome(os.environ['CHROMEDRIVER_PATH'])
+        driver.get(prepared.url)
+
+        wait = selenium.webdriver.support.ui.WebDriverWait(driver, 15)
+        wait.until(selenium.webdriver.support.expected_conditions.presence_of_element_located((selenium.webdriver.common.by.By.ID, 'download-button')))
+
+        download_link = driver.find_element_by_xpath("//a[@id='download-button']")
+
+        payload = {'cacheId': download_link.get_attribute('data-cacheid'),
+                   'typeOfReport': download_link.get_attribute('data-typeofreport'),
+                   'token': str(datetime.datetime.now())}
+
+        driver.quit()
+
+        return payload
 
     def _prepare_search_params(self,
                                case_types: typing.Optional[CaseTypes] = None,
