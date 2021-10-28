@@ -15,6 +15,7 @@ import selenium.webdriver
 import selenium.webdriver.support.expected_conditions
 import selenium.webdriver.common.by
 import selenium.webdriver.support.ui
+import selenium.webdriver.chrome.options
 
 
 CaseTypes = typing.Sequence[typing.Literal['C', 'R']]
@@ -62,7 +63,17 @@ class NLRB(scrapelib.Scraper):
         prepared = PreparedRequest()
         prepared.prepare_url(search_url, params)
 
-        driver = selenium.webdriver.Chrome(os.environ['CHROMEDRIVER_PATH'])
+
+        options = selenium.webdriver.chrome.options.Options()
+        options.add_argument("--headless")
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('disable-infobars')
+        options.add_argument("--disable-extensions")
+
+        driver = selenium.webdriver.Chrome(chrome_options=options,
+                                           executable_path=os.environ['CHROMEDRIVER_PATH'])
         driver.get(prepared.url)
 
         wait = selenium.webdriver.support.ui.WebDriverWait(driver, 15)
