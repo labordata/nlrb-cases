@@ -40,8 +40,9 @@ class NLRB(scrapelib.Scraper):
 
         payload = self._click_download_button(search_url, params)
 
-        response = self.post(self.base_url + '/nlrb-downloads/start-download',
-                             data=payload)
+        response = self.post(self.base_url + '/nlrb-downloads/start-download' +
+                            payload['typeOfReport'] + '/' + payload['cacheId'] +
+                            '/' + payload['token'])
 
         result = response.json()['data']
 
