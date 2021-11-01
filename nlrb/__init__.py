@@ -40,9 +40,10 @@ class NLRB(scrapelib.Scraper):
 
         payload = self._click_download_button(search_url, params)
 
-        response = self.post(self.base_url + '/nlrb-downloads/start-download' +
-                            payload['typeOfReport'] + '/' + payload['cacheId'] +
-                            '/' + payload['token'])
+        download_link = (self.base_url +
+                         '/nlrb-downloads/start-download/{type_of_report}/{cache_id}/{download_token}'.format(**payload))
+
+        response = self.get(download_link)
 
         result = response.json()['data']
 
@@ -81,10 +82,11 @@ class NLRB(scrapelib.Scraper):
         wait.until(selenium.webdriver.support.expected_conditions.presence_of_element_located((selenium.webdriver.common.by.By.ID, 'download-button')))
 
         download_link = driver.find_element_by_xpath("//a[@id='download-button']")
-
-        payload = {'cacheId': download_link.get_attribute('data-cacheid'),
-                   'typeOfReport': download_link.get_attribute('data-typeofreport'),
-                   'token': str(datetime.datetime.now())}
+        payload = dict(
+            cache_id = download_link.get_attribute('data-cacheid'),
+            type_of_report = download_link.get_attribute('data-typeofreport'),
+            download_token = driver.get_cookie('nlrb-dl-sessid')['value']
+        )
 
         driver.quit()
 
