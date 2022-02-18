@@ -182,18 +182,30 @@ class NLRB(scrapelib.Scraper):
 
     def advanced_search(self, case_number: str):
 
+        case_type = self._case_type(case_number)
+        if case_type.startswith('R'):
+            report_type = 'r_case_report'
+        elif case_type.startswith('C'):
+            report_type = 'c_case_report'
+        else:
+            report_type = "cases_and_decisions"
+
         search_url = "https://www.nlrb.gov/advanced-search"
         params = {
-            "foia_report_type": "cases_and_decisions",
+            "foia_report_type": report_type,
             "cases_and_decisions_cboxes[close_method]": "close_method",
             "cases_and_decisions_cboxes[employees]": "employees",
             "cases_and_decisions_cboxes[union]": "union",
             "cases_and_decisions_cboxes[unit_description]": "unit_description",
             "cases_and_decisions_cboxes[voters]": "voters",
             "cases_and_decisions_cboxes[case]": "case",
+            "from_date": "1940-01-18",
             "search_term": case_number,
         }
         response = self.get(search_url, params=params)
+        print(response.url)
+        print(response.headers.get('content-location'))
+        print(response.fromcache)
 
         page = lxml.html.fromstring(response.text)
         page.make_links_absolute(search_url)
@@ -310,7 +322,9 @@ class NLRB(scrapelib.Scraper):
             )
         ]
 
+        import sys
         (advanced_search_results,) = self.advanced_search(case_number)
+        print(advanced_search_results, file=sys.stderr)
 
         assert case_number == advanced_search_results.pop("Case Number")
         details.update(advanced_search_results)
