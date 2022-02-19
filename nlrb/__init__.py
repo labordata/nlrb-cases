@@ -25,6 +25,22 @@ Statuses = typing.Sequence[typing.Literal["Open", "Closed", "Open - Blocked"]]
 class NLRB(scrapelib.Scraper):
     base_url = "https://www.nlrb.gov"
 
+    def __init__(self, *args, **kwargs):
+
+        options = selenium.webdriver.chrome.options.Options()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("disable-infobars")
+        options.add_argument("--disable-extensions")
+
+        self.driver = selenium.webdriver.Chrome(
+            chrome_options=options, executable_path=os.environ["CHROMEDRIVER_PATH"]
+        )
+
+        super().__init__(*args, **kwargs)
+
     def _download_link(
         self,
         search_url: str,
@@ -72,34 +88,21 @@ class NLRB(scrapelib.Scraper):
         prepared = PreparedRequest()
         prepared.prepare_url(search_url, params)
 
-        options = selenium.webdriver.chrome.options.Options()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("disable-infobars")
-        options.add_argument("--disable-extensions")
+        self.driver.get(prepared.url)
 
-        driver = selenium.webdriver.Chrome(
-            chrome_options=options, executable_path=os.environ["CHROMEDRIVER_PATH"]
-        )
-        driver.get(prepared.url)
-
-        wait = selenium.webdriver.support.ui.WebDriverWait(driver, 15)
+        wait = selenium.webdriver.support.ui.WebDriverWait(self.driver, 15)
         wait.until(
             selenium.webdriver.support.expected_conditions.presence_of_element_located(
                 (selenium.webdriver.common.by.By.ID, "download-button")
             )
         )
 
-        download_link = driver.find_element_by_xpath("//a[@id='download-button']")
+        download_link = self.driver.find_element_by_xpath("//a[@id='download-button']")
         payload = dict(
             cache_id=download_link.get_attribute("data-cacheid"),
             type_of_report=download_link.get_attribute("data-typeofreport"),
-            download_token=driver.get_cookie("nlrb-dl-sessid")["value"],
+            download_token=self.driver.get_cookie("nlrb-dl-sessid")["value"],
         )
-
-        driver.quit()
 
         return payload
 
@@ -182,32 +185,43 @@ class NLRB(scrapelib.Scraper):
 
     def advanced_search(self, case_number: str):
 
-        case_type = self._case_type(case_number)
-        if case_type.startswith('R'):
-            report_type = 'r_case_report'
-        elif case_type.startswith('C'):
-            report_type = 'c_case_report'
-        else:
-            report_type = "cases_and_decisions"
-
         search_url = "https://www.nlrb.gov/advanced-search"
         params = {
-            "foia_report_type": report_type,
+            "foia_report_type": "cases_and_decisions",
             "cases_and_decisions_cboxes[close_method]": "close_method",
             "cases_and_decisions_cboxes[employees]": "employees",
             "cases_and_decisions_cboxes[union]": "union",
             "cases_and_decisions_cboxes[unit_description]": "unit_description",
             "cases_and_decisions_cboxes[voters]": "voters",
+            "cases_and_decisions_cboxes[date_closed]": "date_closed",
+            "cases_and_decisions_cboxes[city]": "city",
+            "cases_and_decisions_cboxes[state]": "state",
             "cases_and_decisions_cboxes[case]": "case",
-            "from_date": "1940-01-18",
             "search_term": case_number,
         }
-        response = self.get(search_url, params=params)
-        print(response.url)
-        print(response.headers.get('content-location'))
-        print(response.fromcache)
 
-        page = lxml.html.fromstring(response.text)
+        prepared = PreparedRequest()
+        prepared.prepare_url(search_url, params)
+
+        for _ in range(5):
+            response = self.driver.get(prepared.url)
+
+            wait = selenium.webdriver.support.ui.WebDriverWait(self.driver, 30)
+
+            try:
+                wait.until(
+                    selenium.webdriver.support.expected_conditions.presence_of_element_located(
+                        (selenium.webdriver.common.by.By.ID, "ads-download-button")
+                    )
+                )
+            except selenium.common.exceptions.TimeoutException:
+                continue
+            else:
+                break
+        else:
+            raise selenium.common.exceptions.TimeoutException()
+
+        page = lxml.html.fromstring(self.driver.page_source)
         page.make_links_absolute(search_url)
 
         (result_table,) = page.xpath(
@@ -220,9 +234,7 @@ class NLRB(scrapelib.Scraper):
 
     def case_details(self, case_number: str):
         case_url = self.base_url + "/case/" + case_number
-        response = self.get(case_url)
-        if response.status_code == 418:
-            response.raise_for_status()
+        response = self.get(case_url, timeout=30)
 
         page = lxml.html.fromstring(response.text)
         page.make_links_absolute(case_url)
@@ -322,9 +334,7 @@ class NLRB(scrapelib.Scraper):
             )
         ]
 
-        import sys
         (advanced_search_results,) = self.advanced_search(case_number)
-        print(advanced_search_results, file=sys.stderr)
 
         assert case_number == advanced_search_results.pop("Case Number")
         details.update(advanced_search_results)
