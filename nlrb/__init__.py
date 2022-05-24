@@ -263,7 +263,11 @@ class NLRB(scrapelib.Scraper):
                 case_number = header_element.tail.strip()
                 details[header] = case_number
                 details["case_type"] = self._case_type(case_number)
-
+            elif header == "Date Filed":
+                date_str = header_element.tail.strip()
+                details[header] = datetime.datetime.strptime(
+                     date_str, "%m/%d/%Y"
+                 ).date()
             else:
                 details[header] = header_element.tail.strip()
 
