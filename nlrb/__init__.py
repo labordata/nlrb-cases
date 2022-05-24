@@ -251,14 +251,11 @@ class NLRB(scrapelib.Scraper):
         details["name"] = name.strip()
 
         # Basic Details
-        (basic_section,) = page.xpath(
-            "//div[@id='block-mainpagecontent']/div[@class='partition-div']"
+        basic_info, *tally_elements = page.xpath(
+            "//div[@id='block-mainpagecontent']/div[@class='display-flex flex-justify flex-wrap']"
         )
-        left_column = basic_section.xpath(".//div[@class='left-div']/b")
-        right_column = basic_section.xpath(
-            ".//div[@class='right-div case-right-div']/b"
-        )
-        columns = left_column + right_column
+
+        columns = basic_info.xpath(".//b")
 
         for header_element in columns:
             header = header_element.text.strip(": ")
@@ -267,13 +264,23 @@ class NLRB(scrapelib.Scraper):
                 details[header] = case_number
                 details["case_type"] = self._case_type(case_number)
 
-            elif header == "Date Filed":
-                date_str = header_element.getnext().text.strip()
-                details[header] = datetime.datetime.strptime(
-                    date_str, "%m/%d/%Y"
-                ).date()
             else:
                 details[header] = header_element.tail.strip()
+
+        # Tallies
+        tallies = []
+
+        for tally_element in tally_elements:
+            tally_details = {}
+            columns = tally_element.xpath(".//b")
+
+            for header_element in columns:
+                header = header_element.text.strip(": ")
+                tally_details[header] = header_element.tail.strip()
+
+            tallies.append(tally_details)
+
+        details["tallies"] = tallies
 
         # Docket
         if "Docket Activity data is not available" not in response.text:
@@ -307,7 +314,7 @@ class NLRB(scrapelib.Scraper):
                 "//table[starts-with(@class, 'Participant')]/tbody"
             )
 
-            for row in participant_table.xpath("./tr"):
+            for row in participant_table.xpath("./tr[not(td[@colspan=3])]"):
                 participant_entry = {}
 
                 participant, address, phone = row.xpath("./td")
@@ -407,6 +414,8 @@ class NLRB(scrapelib.Scraper):
 
 
 if __name__ == "__main__":
+    import pprint
 
     s = NLRB()
-    print(s.case_details("07-CB-290776"))
+    pprint.pprint(s.case_details("02-RC-255684"))
+    pprint.pprint(s.case_details("12-CA-296137"))
