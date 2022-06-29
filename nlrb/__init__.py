@@ -98,10 +98,20 @@ class NLRB(scrapelib.Scraper):
         )
 
         download_link = self.driver.find_element("xpath", "//a[@id='download-button']")
+        for retry in range(4):
+            try:
+                download_token=self.driver.get_cookie("nlrb-dl-sessid")["value"]
+            except TypeError:
+                time.sleep(1)
+                continue
+        else:
+            download_token=self.driver.get_cookie("nlrb-dl-sessid")["value"]    
+            
+            
         payload = dict(
             cache_id=download_link.get_attribute("data-cacheid"),
             type_of_report=download_link.get_attribute("data-typeofreport"),
-            download_token=self.driver.get_cookie("nlrb-dl-sessid")["value"],
+            download_token=download_token,
         )
 
         return payload
@@ -419,7 +429,12 @@ class NLRB(scrapelib.Scraper):
 
 if __name__ == "__main__":
     import pprint
+    import datetime
 
     s = NLRB()
-    pprint.pprint(s.case_details("02-RC-255684"))
-    pprint.pprint(s.case_details("12-CA-296137"))
+    #pprint.pprint(s.case_details("02-RC-255684"))
+    #pprint.pprint(s.case_details("12-CA-296137"))
+    filings_url = s.filings(case_types=['R', 'C'], date_start=datetime.date.today() - datetime.timedelta(days = 7))
+    tallies_url = s.tallies(date_start=datetime.date.today() - datetime.timedelta(days = 7))
+
+    print(filings_url)
