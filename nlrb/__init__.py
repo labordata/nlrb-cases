@@ -97,7 +97,7 @@ class NLRB(scrapelib.Scraper):
             )
         )
 
-        download_link = self.driver.find_element_by_xpath("//a[@id='download-button']")
+        download_link = self.driver.find_element("xpath", "//a[@id='download-button']")
         payload = dict(
             cache_id=download_link.get_attribute("data-cacheid"),
             type_of_report=download_link.get_attribute("data-typeofreport"),
