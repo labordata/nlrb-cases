@@ -62,7 +62,7 @@ class NLRB(scrapelib.Scraper):
             )
         )
 
-        response = self.get(download_link)
+        response = self.get(download_link, verify=False)
 
         result = response.json()["data"]
 
