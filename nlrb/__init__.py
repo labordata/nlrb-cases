@@ -72,7 +72,8 @@ class NLRB(scrapelib.Scraper):
         ) as pbar:
             while not result["finished"]:
                 response = self.get(
-                    self.base_url + "/nlrb-downloads/progress/" + str(result["id"])
+                    self.base_url + "/nlrb-downloads/progress/" + str(result["id"]),
+                    verify=False,
                 )
                 result = response.json()["data"]
 
@@ -100,14 +101,13 @@ class NLRB(scrapelib.Scraper):
         download_link = self.driver.find_element("xpath", "//a[@id='download-button']")
         for retry in range(4):
             try:
-                download_token=self.driver.get_cookie("nlrb-dl-sessid")["value"]
+                download_token = self.driver.get_cookie("nlrb-dl-sessid")["value"]
             except TypeError:
                 time.sleep(1)
                 continue
         else:
-            download_token=self.driver.get_cookie("nlrb-dl-sessid")["value"]    
-            
-            
+            download_token = self.driver.get_cookie("nlrb-dl-sessid")["value"]
+
         payload = dict(
             cache_id=download_link.get_attribute("data-cacheid"),
             type_of_report=download_link.get_attribute("data-typeofreport"),
@@ -244,7 +244,7 @@ class NLRB(scrapelib.Scraper):
 
     def case_details(self, case_number: str):
         case_url = self.base_url + "/case/" + case_number
-        response = self.get(case_url, timeout=30)
+        response = self.get(case_url, timeout=30, verify=False)
 
         page = lxml.html.fromstring(response.text)
         page.make_links_absolute(case_url)
@@ -276,8 +276,8 @@ class NLRB(scrapelib.Scraper):
             elif header == "Date Filed":
                 date_str = header_element.tail.strip()
                 details[header] = datetime.datetime.strptime(
-                     date_str, "%m/%d/%Y"
-                 ).date()
+                    date_str, "%m/%d/%Y"
+                ).date()
             else:
                 details[header] = header_element.tail.strip()
 
@@ -389,7 +389,9 @@ class NLRB(scrapelib.Scraper):
                     )
                 )
 
-                response = self.get(next_page_url, params={"page": page_number})
+                response = self.get(
+                    next_page_url, params={"page": page_number}, verify=False
+                )
 
                 page_snippet = lxml.html.fromstring(response.json()[3]["data"])
                 (docket_table,) = page_snippet.xpath("//table/tbody")
@@ -432,9 +434,12 @@ if __name__ == "__main__":
     import datetime
 
     s = NLRB()
-    #pprint.pprint(s.case_details("02-RC-255684"))
-    #pprint.pprint(s.case_details("12-CA-296137"))
-    filings_url = s.filings(case_types=['R', 'C'], date_start=datetime.date.today() - datetime.timedelta(days = 7))
-    tallies_url = s.tallies(date_start=datetime.date.today() - datetime.timedelta(days = 7))
+    filings_url = s.filings(
+        case_types=["R", "C"],
+        date_start=datetime.date.today() - datetime.timedelta(days=7),
+    )
+    tallies_url = s.tallies(
+        date_start=datetime.date.today() - datetime.timedelta(days=7)
+    )
 
     print(filings_url)
