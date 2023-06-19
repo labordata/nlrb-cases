@@ -16,6 +16,7 @@ import selenium.webdriver.common.by
 import selenium.webdriver.support.ui
 import selenium.webdriver.chrome.options
 from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
+from selenium.webdriver.chrome.service import Service
 
 CaseTypes = typing.Sequence[typing.Literal["C", "R"]]
 Statuses = typing.Sequence[typing.Literal["Open", "Closed", "Open - Blocked"]]
@@ -34,8 +35,9 @@ class NLRB(scrapelib.Scraper):
         options.add_argument("disable-infobars")
         options.add_argument("--disable-extensions")
 
+        service = Service(os.environ["CHROMEDRIVER_PATH"])
         self.driver = Chrome(
-            options=options, executable_path=os.environ["CHROMEDRIVER_PATH"]
+            options=options, service=service
         )
 
         super().__init__(*args, **kwargs)
