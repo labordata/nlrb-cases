@@ -36,7 +36,7 @@ class NLRB(scrapelib.Scraper):
         options.add_argument("--disable-extensions")
 
         self.driver = selenium.webdriver.Chrome(
-            chrome_options=options, executable_path=os.environ["CHROMEDRIVER_PATH"]
+            options=options, executable_path=os.environ["CHROMEDRIVER_PATH"]
         )
 
         super().__init__(*args, **kwargs)
