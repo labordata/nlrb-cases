@@ -8,7 +8,6 @@ import os
 
 import scrapelib
 import lxml.html
-import requests
 from requests.models import PreparedRequest
 import tqdm
 import selenium.webdriver
@@ -16,7 +15,7 @@ import selenium.webdriver.support.expected_conditions
 import selenium.webdriver.common.by
 import selenium.webdriver.support.ui
 import selenium.webdriver.chrome.options
-import selenium.webdriver.chrome.webdriver.WebDriver as Chrome
+from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
 
 CaseTypes = typing.Sequence[typing.Literal["C", "R"]]
 Statuses = typing.Sequence[typing.Literal["Open", "Closed", "Open - Blocked"]]
