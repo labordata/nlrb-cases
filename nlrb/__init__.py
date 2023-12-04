@@ -36,9 +36,7 @@ class NLRB(scrapelib.Scraper):
         options.add_argument("--disable-extensions")
 
         service = Service(os.environ["CHROMEDRIVER_PATH"])
-        self.driver = Chrome(
-            options=options, service=service
-        )
+        self.driver = Chrome(options=options, service=service)
 
         super().__init__(*args, **kwargs)
 
@@ -334,10 +332,12 @@ class NLRB(scrapelib.Scraper):
 
                 participant, address, phone = row.xpath("./td")
 
+                participant_entry["type"] = participant.xpath("./b/text()")[0].strip()
                 participant_text = [
-                    br.tail.strip() for br in participant.xpath("./br") if br.tail
+                    br.tail.strip() if br.tail else ""
+                    for br in participant.xpath("./br")
                 ]
-                participant_entry["type"], *participant_text = participant_text
+                participant_entry["subtype"], *participant_text = participant_text
                 participant_entry["participant"] = "\n".join(participant_text).strip()
                 participant_entry["address"] = "\n".join(
                     line.strip() for line in address.xpath("./text()")
@@ -435,6 +435,8 @@ if __name__ == "__main__":
     import datetime
 
     s = NLRB()
+
+    result = s.case_details("05-RC-016189")
     filings_url = s.filings(
         case_types=["R", "C"],
         date_start=datetime.date.today() - datetime.timedelta(days=7),
