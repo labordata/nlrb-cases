@@ -1,22 +1,22 @@
-import typing
-import time
-import urllib.parse
-import functools
 import datetime
-import sys
+import functools
 import os
+import sys
+import time
+import typing
+import urllib.parse
 
-import scrapelib
 import lxml.html
-from requests.models import PreparedRequest
-import tqdm
+import scrapelib
 import selenium.webdriver
-import selenium.webdriver.support.expected_conditions
-import selenium.webdriver.common.by
-import selenium.webdriver.support.ui
 import selenium.webdriver.chrome.options
-from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
+import selenium.webdriver.common.by
+import selenium.webdriver.support.expected_conditions
+import selenium.webdriver.support.ui
+import tqdm
+from requests.models import PreparedRequest
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
 
 CaseTypes = typing.Sequence[typing.Literal["C", "R"]]
 Statuses = typing.Sequence[typing.Literal["Open", "Closed", "Open - Blocked"]]
@@ -212,30 +212,34 @@ class NLRB(scrapelib.Scraper):
         prepared = PreparedRequest()
         prepared.prepare_url(search_url, params)
 
-        for _ in range(5):
-            response = self.driver.get(prepared.url)
+        tries = 10
+        for _ in range(tries):
+            self.driver.get(prepared.url)
 
             wait = selenium.webdriver.support.ui.WebDriverWait(self.driver, 30)
 
-            try:
-                wait.until(
-                    selenium.webdriver.support.expected_conditions.presence_of_element_located(
-                        (selenium.webdriver.common.by.By.ID, "ads-download-button")
+            wait.until(
+                selenium.webdriver.support.expected_conditions.presence_of_element_located(
+                    (
+                        selenium.webdriver.common.by.By.CLASS_NAME,
+                        "foia-advanced-search-results-wrapper",
                     )
                 )
-            except selenium.common.exceptions.TimeoutException:
-                continue
-            else:
+            )
+
+            page = lxml.html.fromstring(self.driver.page_source)
+            page.make_links_absolute(search_url)
+
+            (result_table,) = page.xpath(
+                "//table[contains(@class, 'foia-advanced-search-results-table-two')]"
+            )
+            if result_table.xpath("./tbody/tr"):
                 break
         else:
-            raise selenium.common.exceptions.TimeoutException()
+            raise ValueError(
+                f"Could not connected to {prepared.url} after {tries} tries"
+            )
 
-        page = lxml.html.fromstring(self.driver.page_source)
-        page.make_links_absolute(search_url)
-
-        (result_table,) = page.xpath(
-            "//table[contains(@class, 'foia-advanced-search-results-table-two')]"
-        )
         keys = result_table.xpath("./thead/tr/th/text()")
 
         for row in result_table.xpath("./tbody/tr"):
@@ -431,8 +435,6 @@ class NLRB(scrapelib.Scraper):
 
 
 if __name__ == "__main__":
-    import pprint
-    import datetime
 
     s = NLRB()
 
