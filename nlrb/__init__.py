@@ -5,6 +5,7 @@ import sys
 import time
 import typing
 import urllib.parse
+import warnings
 
 import lxml.html
 import scrapelib
@@ -212,7 +213,7 @@ class NLRB(scrapelib.Scraper):
         prepared = PreparedRequest()
         prepared.prepare_url(search_url, params)
 
-        tries = 10
+        tries = 5
         for _ in range(tries):
             self.driver.get(prepared.url)
 
@@ -236,9 +237,7 @@ class NLRB(scrapelib.Scraper):
             if result_table.xpath("./tbody/tr"):
                 break
         else:
-            raise ValueError(
-                f"Could not connected to {prepared.url} after {tries} tries"
-            )
+            raise ValueError(f"Could not connect to {prepared.url} after {tries} tries")
 
         keys = result_table.xpath("./thead/tr/th/text()")
 
@@ -360,10 +359,13 @@ class NLRB(scrapelib.Scraper):
             )
         ]
 
-        (advanced_search_results,) = self.advanced_search(case_number)
-
-        assert case_number == advanced_search_results.pop("Case Number")
-        details.update(advanced_search_results)
+        try:
+            (advanced_search_results,) = self.advanced_search(case_number)
+        except ValueError as exception:
+            warnings.warn(exception)
+        else:
+            assert case_number == advanced_search_results.pop("Case Number")
+            details.update(advanced_search_results)
 
         return {k.lower().replace(" ", "_"): v for k, v in details.items()}
 
