@@ -361,7 +361,7 @@ class NLRB(scrapelib.Scraper):
 
         try:
             (advanced_search_results,) = self.advanced_search(case_number)
-        except ValueError as exception:
+        except (ValueError, selenium.common.exceptions.WebDriverException) as exception:
             warnings.warn(exception)
         else:
             assert case_number == advanced_search_results.pop("Case Number")
