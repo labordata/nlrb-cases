@@ -28,6 +28,11 @@ class NLRB(scrapelib.Scraper):
 
     def __init__(self, *args, **kwargs):
 
+        super().__init__(*args, **kwargs)
+
+        self._new_driver()
+
+    def _new_driver(self):
         options = selenium.webdriver.chrome.options.Options()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
@@ -38,8 +43,6 @@ class NLRB(scrapelib.Scraper):
 
         service = Service(os.environ["CHROMEDRIVER_PATH"])
         self.driver = Chrome(options=options, service=service)
-
-        super().__init__(*args, **kwargs)
 
     def _download_link(
         self,
@@ -207,7 +210,7 @@ class NLRB(scrapelib.Scraper):
             "cases_and_decisions_cboxes[city]": "city",
             "cases_and_decisions_cboxes[state]": "state",
             "cases_and_decisions_cboxes[case]": "case",
-            "search_term": case_number,
+            "search_term": f'"{case_number}"',
         }
 
         prepared = PreparedRequest()
@@ -363,6 +366,9 @@ class NLRB(scrapelib.Scraper):
             (advanced_search_results,) = self.advanced_search(case_number)
         except (ValueError, selenium.common.exceptions.WebDriverException) as exception:
             warnings.warn(exception)
+            self.driver.close()
+            self.driver.quit()
+            self._new_driver()
         else:
             assert case_number == advanced_search_results.pop("Case Number")
             details.update(advanced_search_results)
