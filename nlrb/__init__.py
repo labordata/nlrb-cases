@@ -377,39 +377,15 @@ class NLRB(scrapelib.Scraper):
 
     def _docket(self, page, case_number):
 
-        (docket_table,) = page.xpath(
-            "//div[@id='case_docket_activity_data']/table/tbody"
+        response = self.get(
+            f"https://www.nlrb.gov/sort-case-decisions-cp/{case_number}/ds_activity+desc/case-docket-activity/ds-activity-date/1?_wrapper_format=drupal_ajax&_wrapper_format=drupal_ajax"
         )
+
+        page_snippet = lxml.html.fromstring(response.json()[3]["data"])
+
+        (docket_table,) = page_snippet.xpath("//table/tbody")
+
         docket = list(self._parse_docket_table(docket_table))
-
-        last_page_links = page.xpath(
-            "//div[@class='case_documents_pagination']//a[@title='Go to last page']"
-        )
-
-        if last_page_links:
-
-            (last_page_link,) = last_page_links
-            last_page = urllib.parse.parse_qs(
-                urllib.parse.urlparse(last_page_link.get("href")).query
-            )["page"][0].split(",")[0]
-
-            for page_number in range(1, int(last_page) + 1):
-
-                next_page_url = (
-                    self.base_url
-                    + "/sort-case-decisions-cp/{}/ds_activity%20desc/case-docket-activity/ds-activity-date".format(
-                        case_number
-                    )
-                )
-
-                response = self.get(
-                    next_page_url, params={"page": page_number}, verify=False
-                )
-
-                page_snippet = lxml.html.fromstring(response.json()[3]["data"])
-                (docket_table,) = page_snippet.xpath("//table/tbody")
-
-                docket += list(self._parse_docket_table(docket_table))
 
         return docket
 
@@ -446,7 +422,7 @@ if __name__ == "__main__":
 
     s = NLRB()
 
-    result = s.case_details("05-RC-016189")
+    result = s.case_details("18-CA-266091")
     filings_url = s.filings(
         case_types=["R", "C"],
         date_start=datetime.date.today() - datetime.timedelta(days=7),
